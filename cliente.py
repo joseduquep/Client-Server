@@ -7,7 +7,7 @@ SERVER_PORT = 67
 # Función para crear el socket de cliente DHCP
 def create_dhcp_socket():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
-    sock.settimeout(5)  # Timeout de 5 segundos para recibir datos
+    sock.settimeout(10)  # Timeout de 5 segundos para recibir datos
     return sock
 
 # Función para enviar un mensaje DHCPDISCOVER
@@ -28,6 +28,11 @@ def receive_offer(sock):
             return None, None, None, None
 
         offered_ip = response[1]
+        if offered_ip:
+            print(f"IP ofrecida: {offered_ip}")
+            send_request(sock, offered_ip)
+        else:
+            print("No se recibió una oferta válida")
         # Si faltan otros campos, los llenamos con valores por defecto o vacíos
         mask = response[2] if len(response) > 2 else "255.255.255.0"  # Valor por defecto
         gateway = response[3] if len(response) > 3 else "192.168.1.1"  # Valor por defecto
@@ -42,13 +47,16 @@ def receive_offer(sock):
 def send_request(sock, offered_ip):
     message = f"DHCPREQUEST {offered_ip}"
     sock.sendto(message.encode(), (SERVER_IP, SERVER_PORT))
-    print(f"Enviado DHCPREQUEST para la IP: {offered_ip}")
+    print(f"DHCPREQUEST enviado para la IP: {offered_ip}")
+
 
 # Función para recibir la confirmación (DHCPACK) del servidor
 def receive_ack(sock):
     try:
         response, _ = sock.recvfrom(1024)
+        print(f"Respuesta DHCPACK recibida (raw): {response}")  # Agregar este print
         response = response.decode().split()
+        print(f"Respuesta DHCPACK decodificada: {response}")  # Agregar este print
         if response[0] == "DHCPACK":
             assigned_ip = response[1]
             print(f"DHCPACK recibido: {assigned_ip}")
@@ -59,6 +67,7 @@ def receive_ack(sock):
     except socket.timeout:
         print("Error: No se recibió una respuesta DHCPACK.")
         return None
+
 
 # Función para enviar un mensaje DHCPRELEASE
 def dhcp_release(sock, assigned_ip):
