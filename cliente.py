@@ -1,4 +1,6 @@
 import socket
+from colorama import init, Fore, Back, Style
+init()
 
 # IP y puerto del servidor DHCP
 SERVER_IP = "127.0.0.1"  # Cambia esto si el servidor está en otra máquina
@@ -14,14 +16,14 @@ def create_dhcp_socket():
 def send_discover(sock):
     message = "DHCPDISCOVER"
     sock.sendto(message.encode(), (SERVER_IP, SERVER_PORT))
-    print("Enviado DHCPDISCOVER")
+    print(Fore.YELLOW + "Enviado DHCPDISCOVER")
 
 # Función para recibir la oferta (DHCPOFFER) del servidor
 def receive_offer(sock):
     try:
         response, _ = sock.recvfrom(1024)
         response = response.decode().split()
-        print("Respuesta recibida:", response)  # Imprime la respuesta recibida
+        print(Fore.BLUE + "Respuesta recibida:", response)  # Imprime la respuesta recibida
 
         if len(response) < 2:
             print("Error: Respuesta incompleta")
@@ -29,7 +31,7 @@ def receive_offer(sock):
 
         offered_ip = response[1]
         if offered_ip:
-            print(f"IP ofrecida: {offered_ip}")
+            print(Fore.GREEN +f"IP ofrecida: {offered_ip}")
             send_request(sock, offered_ip)
         else:
             print("No se recibió una oferta válida")
@@ -45,21 +47,21 @@ def receive_offer(sock):
 
 # Función para enviar un mensaje DHCPREQUEST
 def send_request(sock, offered_ip):
-    message = f"DHCPREQUEST {offered_ip}"
+    message = Fore.YELLOW + f"DHCPREQUEST {offered_ip}"
     sock.sendto(message.encode(), (SERVER_IP, SERVER_PORT))
-    print(f"DHCPREQUEST enviado para la IP: {offered_ip}")
+    print(Fore.RED + f"DHCPREQUEST enviado para la IP: {offered_ip}")
 
 
 # Función para recibir la confirmación (DHCPACK) del servidor
 def receive_ack(sock):
     try:
         response, _ = sock.recvfrom(1024)
-        print(f"Respuesta DHCPACK recibida (raw): {response}")  # Agregar este print
+        print(Fore.BLUE + f"Respuesta DHCPACK recibida (raw): {response}")  # Agregar este print
         response = response.decode().split()
         print(f"Respuesta DHCPACK decodificada: {response}")  # Agregar este print
         if response[0] == "DHCPACK":
             assigned_ip = response[1]
-            print(f"DHCPACK recibido: {assigned_ip}")
+            print(Fore.GREEN + f"DHCPACK recibido: {assigned_ip}")
             return assigned_ip
         else:
             print("Error: No se recibió un DHCPACK válido.")
@@ -86,13 +88,13 @@ def main():
             print("No se recibió una oferta válida.")
             return
         
-        print(f"IP Ofrecida: {offered_ip}, Máscara: {mask}, Gateway: {gateway}, DNS: {dns}")
+        print(Fore.RED + f"IP Ofrecida: {offered_ip}, Máscara: {mask}, Gateway: {gateway}, DNS: {dns}")
 
         send_request(sock, offered_ip)
         assigned_ip = receive_ack(sock)
 
         if assigned_ip:
-            print(f"Dirección IP asignada: {assigned_ip}")
+            print(Fore.GREEN +f"Dirección IP asignada: {assigned_ip}")
         
     except Exception as e:
         print(f"Error durante la comunicación DHCP: {e}")
