@@ -32,7 +32,7 @@ def receive_offer(sock):
         offered_ip = response[1]
         if offered_ip:
             print(Fore.GREEN +f"IP ofrecida: {offered_ip}")
-            send_request(sock, offered_ip)
+            # send_request(sock, offered_ip) ###################
         else:
             print("No se recibió una oferta válida")
         # Si faltan otros campos, los llenamos con valores por defecto o vacíos
@@ -56,9 +56,9 @@ def send_request(sock, offered_ip):
 def receive_ack(sock):
     try:
         response, _ = sock.recvfrom(1024)
-        print(Fore.BLUE + f"Respuesta DHCPACK recibida (raw): {response}")  # Agregar este print
+        # print(Fore.BLUE + f"Respuesta DHCPACK recibida (raw): {response}")  # Agregar este print
         response = response.decode().split()
-        print(f"Respuesta DHCPACK decodificada: {response}")  # Agregar este print
+        # print(f"Respuesta DHCPACK decodificada: {response}")  # Agregar este print
         if response[0] == "DHCPACK":
             assigned_ip = response[1]
             print(Fore.GREEN + f"DHCPACK recibido: {assigned_ip}")
@@ -75,7 +75,7 @@ def receive_ack(sock):
 def dhcp_release(sock, assigned_ip):
     message = f"DHCPRELEASE {assigned_ip}"
     sock.sendto(message.encode(), (SERVER_IP, SERVER_PORT))
-    print(f"Enviado DHCPRELEASE para la IP: {assigned_ip}")
+    print(Fore.BLUE + f"Enviado DHCPRELEASE para la IP: {assigned_ip}")
 
 # Función principal
 def main():
@@ -86,7 +86,7 @@ def main():
         offered_ip, mask, gateway, dns = receive_offer(sock)
         if not offered_ip:  # Si la oferta no es válida
             print("No se recibió una oferta válida.")
-            return
+            return None
         
         print(Fore.RED + f"IP Ofrecida: {offered_ip}, Máscara: {mask}, Gateway: {gateway}, DNS: {dns}")
 
