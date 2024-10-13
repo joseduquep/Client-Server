@@ -32,8 +32,13 @@ int client_count = 0;
 int ip_pool_index = 0;
 char ip_pool[MAX_CLIENTS][16];
 int active_threads = 0;
+
+// Mutexes y condiciones
 pthread_mutex_t thread_count_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t thread_limit_cond = PTHREAD_COND_INITIALIZER;
+
+// Nuevo mutex para proteger acceso a clients[] y client_count
+pthread_mutex_t clients_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // Estructura para pasar datos al hilo
 typedef struct {
@@ -70,129 +75,164 @@ char* assign_ip() {
 void* handle_client(void* arg) {
     client_data_t* client_data = (client_data_t*)arg;
     int sock = client_data->sock;
-    char* buffer = client_data->buffer;
+    char recv_buffer[1024];
     int bytes_received = client_data->bytes_received;
     struct sockaddr_in client_addr = client_data->client_addr;
     socklen_t addr_len = client_data->addr_len;
-    struct sockaddr_in relay_addr;
+    char send_buffer[1024] = {0};
     char client_id[50] = {0};
+    char requested_ip[16] = {0};
 
-    // Extraer CLIENT_ID del mensaje
-    char* id_start = strstr(buffer, "CLIENT_ID: ");
-    if (id_start != NULL) {
-        sscanf(id_start, "CLIENT_ID: %49s", client_id);
-    } else {
-        // Si no hay CLIENT_ID, usar la dirección IP como identificador (no recomendado)
-        strcpy(client_id, inet_ntoa(client_addr.sin_addr));
+    // Copiar el mensaje recibido al recv_buffer
+    strncpy(recv_buffer, client_data->buffer, bytes_received);
+    recv_buffer[bytes_received] = '\0';
+
+    // Depuración: Mostrar el contenido completo del recv_buffer
+    printf("Buffer content: '%s'\n", recv_buffer);
+
+    // Extraer DHCPREQUEST o DHCPDISCOVER
+    if (strstr(recv_buffer, "DHCPREQUEST") != NULL) {
+        // Parsing DHCPREQUEST
+        // Expected format: DHCPREQUEST IP: <IP> CLIENT_ID: <ClientID>
+        int parsed = sscanf(recv_buffer, "DHCPREQUEST IP: %15s CLIENT_ID: %49s", requested_ip, client_id);
+        if (parsed != 2) {
+            printf("Error: Formato de DHCPREQUEST inválido.\n");
+            // Enviar DHCPNAK opcionalmente
+            snprintf(send_buffer, sizeof(send_buffer), "DHCPNAK");
+            sendto(sock, send_buffer, strlen(send_buffer), 0, (struct sockaddr*)&client_addr, addr_len);
+            goto cleanup;
+        }
     }
-
-    // Procesar el paquete recibido
-    if (bytes_received > 0) {
-        buffer[bytes_received] = '\0';
-        printf("Mensaje recibido de %s (ID: %s): %s\n", inet_ntoa(client_addr.sin_addr), client_id, buffer);
-
-        // Revisar si el paquete viene de un relay
-        if (client_addr.sin_addr.s_addr == INADDR_ANY) {
-            printf("Solicitud desde relay detectada.\n");
-            inet_aton(GATEWAY, &relay_addr.sin_addr);
+    else if (strstr(recv_buffer, "DHCPDISCOVER") != NULL) {
+        // Parsing DHCPDISCOVER
+        // Expected format: DHCPDISCOVER CLIENT_ID: <ClientID>
+        char* id_start = strstr(recv_buffer, "CLIENT_ID: ");
+        if (id_start != NULL) {
+            sscanf(id_start, "CLIENT_ID: %49s", client_id);
         } else {
-            relay_addr = client_addr;
+            // Si no hay CLIENT_ID, usar la dirección IP como identificador (no recomendado)
+            strcpy(client_id, inet_ntoa(client_addr.sin_addr));
         }
-
-        // Buscar si el cliente ya está registrado
-        int client_index = -1;
-        for (int i = 0; i < client_count; i++) {
-            if (strcmp(clients[i].client_id, client_id) == 0) {
-                client_index = i;
-                break;
-            }
-        }
-
-        // Manejar DHCPDISCOVER
-        if (strstr(buffer, "DHCPDISCOVER")) {
-            printf("Preparando DHCPOFFER para el cliente %s\n", client_id);
-
-            // Asignar IP si no está asignada
-            char* assigned_ip;
-            if (client_index == -1) {
-                assigned_ip = assign_ip();
-                if (assigned_ip == NULL) {
-                    printf("No hay más direcciones IP disponibles\n");
-                    close(sock);
-                    pthread_mutex_lock(&thread_count_mutex);
-                    active_threads--;
-                    pthread_cond_signal(&thread_limit_cond);
-                    pthread_mutex_unlock(&thread_count_mutex);
-                    free(client_data);
-                    return NULL;
-                }
-
-                // Registrar el cliente
-                dhcp_client new_client;
-                new_client.client_addr = client_addr;
-                strncpy(new_client.assigned_ip, assigned_ip, 16);
-                new_client.lease_expiry = time(NULL) + LEASE_TIME;
-                strncpy(new_client.client_id, client_id, 50);
-
-                clients[client_count++] = new_client;
-                client_index = client_count - 1;
-            } else {
-                // El cliente ya tiene una IP asignada
-                assigned_ip = clients[client_index].assigned_ip;
-            }
-
-            // Crear y enviar DHCPOFFER
-            memset(buffer, 0, sizeof(client_data->buffer));
-            snprintf(buffer, sizeof(client_data->buffer),
-                     "DHCPOFFER IP: %s NETMASK: %s GATEWAY: %s DNS: %s LEASE: %d",
-                     assigned_ip, NETMASK, GATEWAY, DNS_SERVER, LEASE_TIME);
-
-            int send_status = sendto(sock, buffer, strlen(buffer), 0, (struct sockaddr*)&relay_addr, addr_len);
-            if (send_status == -1) {
-                perror("Error al enviar DHCPOFFER");
-            } else {
-                printf("DHCPOFFER enviado con IP: %s al cliente %s\n", assigned_ip, client_id);
-            }
-        }
-
-        // Manejar DHCPREQUEST
-        else if (strstr(buffer, "DHCPREQUEST")) {
-            printf("Procesando DHCPREQUEST del cliente %s\n", client_id);
-
-            // Extraer la IP solicitada
-            char requested_ip[16] = {0};
-            sscanf(buffer, "DHCPREQUEST IP: %15s", requested_ip);
-
-            if (client_index != -1) {
-                char* assigned_ip = clients[client_index].assigned_ip;
-                // Verificar que la IP solicitada coincide con la asignada
-                if (strcmp(requested_ip, assigned_ip) == 0) {
-                    memset(buffer, 0, sizeof(client_data->buffer));
-                    snprintf(buffer, sizeof(client_data->buffer),
-                             "DHCPACK IP: %s NETMASK: %s GATEWAY: %s DNS: %s LEASE: %d",
-                             assigned_ip, NETMASK, GATEWAY, DNS_SERVER, LEASE_TIME);
-
-                    sendto(sock, buffer, strlen(buffer), 0, (struct sockaddr*)&relay_addr, addr_len);
-                    printf("DHCPACK enviado con IP: %s al cliente %s\n", assigned_ip, client_id);
-                } else {
-                    printf("Error: IP solicitada (%s) no coincide con la asignada (%s).\n", requested_ip, assigned_ip);
-                    // Enviar DHCPNAK opcionalmente
-                    memset(buffer, 0, sizeof(client_data->buffer));
-                    snprintf(buffer, sizeof(client_data->buffer), "DHCPNAK");
-                    sendto(sock, buffer, strlen(buffer), 0, (struct sockaddr*)&relay_addr, addr_len);
-                }
-            } else {
-                printf("Error: Cliente %s no encontrado para el DHCPREQUEST.\n", client_id);
-                // Enviar DHCPNAK opcionalmente
-                memset(buffer, 0, sizeof(client_data->buffer));
-                snprintf(buffer, sizeof(client_data->buffer), "DHCPNAK");
-                sendto(sock, buffer, strlen(buffer), 0, (struct sockaddr*)&relay_addr, addr_len);
-            }
-        }
-    } else {
-        perror("No se recibió ningún mensaje");
+    }
+    else {
+        printf("Error: Tipo de mensaje desconocido.\n");
+        goto cleanup;
     }
 
+    // Depuración: Mostrar el CLIENT_ID extraído
+    printf("Extracted CLIENT_ID: '%s'\n", client_id);
+
+    // Revisar si el paquete viene de un relay
+    struct sockaddr_in relay_addr;
+    if (client_addr.sin_addr.s_addr == INADDR_ANY) {
+        printf("Solicitud desde relay detectada.\n");
+        memset(&relay_addr, 0, sizeof(relay_addr));
+        relay_addr.sin_family = AF_INET;
+        inet_aton(GATEWAY, &relay_addr.sin_addr);
+        relay_addr.sin_port = htons(SERVER_PORT); // Asegurar que el puerto está establecido
+    } else {
+        relay_addr = client_addr;
+    }
+
+    // Buscar si el cliente ya está registrado
+    int client_index = -1;
+
+    // Bloquear el mutex antes de acceder a clients[] y client_count
+    pthread_mutex_lock(&clients_mutex);
+    for (int i = 0; i < client_count; i++) {
+        if (strcmp(clients[i].client_id, client_id) == 0) {
+            client_index = i;
+            break;
+        }
+    }
+    pthread_mutex_unlock(&clients_mutex); // Desbloquear el mutex
+
+    // Manejar DHCPDISCOVER
+    if (strstr(recv_buffer, "DHCPDISCOVER")) {
+        printf("Preparando DHCPOFFER para el cliente %s\n", client_id);
+
+        // Asignar IP si no está asignada
+        char* assigned_ip;
+        if (client_index == -1) {
+            assigned_ip = assign_ip();
+            if (assigned_ip == NULL) {
+                printf("No hay más direcciones IP disponibles\n");
+                // Enviar DHCPNAK opcionalmente
+                snprintf(send_buffer, sizeof(send_buffer), "DHCPNAK");
+                sendto(sock, send_buffer, strlen(send_buffer), 0, (struct sockaddr*)&relay_addr, addr_len);
+                goto cleanup;
+            }
+
+            // Registrar el cliente
+            dhcp_client new_client;
+            new_client.client_addr = client_addr;
+            strncpy(new_client.assigned_ip, assigned_ip, 16);
+            new_client.lease_expiry = time(NULL) + LEASE_TIME;
+            strncpy(new_client.client_id, client_id, 50);
+
+            // Bloquear el mutex antes de modificar clients[] y client_count
+            pthread_mutex_lock(&clients_mutex);
+            clients[client_count++] = new_client;
+            client_index = client_count - 1;
+            pthread_mutex_unlock(&clients_mutex); // Desbloquear el mutex
+        } else {
+            // El cliente ya tiene una IP asignada
+            assigned_ip = clients[client_index].assigned_ip;
+        }
+
+        // Crear y enviar DHCPOFFER
+        snprintf(send_buffer, sizeof(send_buffer),
+                 "DHCPOFFER IP: %s NETMASK: %s GATEWAY: %s DNS: %s LEASE: %d",
+                 assigned_ip, NETMASK, GATEWAY, DNS_SERVER, LEASE_TIME);
+
+        int send_status = sendto(sock, send_buffer, strlen(send_buffer), 0, (struct sockaddr*)&relay_addr, addr_len);
+        if (send_status == -1) {
+            perror("Error al enviar DHCPOFFER");
+        } else {
+            printf("DHCPOFFER enviado con IP: %s al cliente %s\n", assigned_ip, client_id);
+        }
+    }
+
+    // Manejar DHCPREQUEST
+    else if (strstr(recv_buffer, "DHCPREQUEST")) {
+        printf("Procesando DHCPREQUEST del cliente %s\n", client_id);
+        printf("Requested IP: '%s'\n", requested_ip);
+
+        if (client_index != -1) {
+            char* assigned_ip;
+
+            // Bloquear el mutex antes de acceder a clients[]
+            pthread_mutex_lock(&clients_mutex);
+            assigned_ip = clients[client_index].assigned_ip;
+            pthread_mutex_unlock(&clients_mutex); // Desbloquear el mutex
+
+            // Verificar que la IP solicitada coincide con la asignada
+            if (strcmp(requested_ip, assigned_ip) == 0) {
+                snprintf(send_buffer, sizeof(send_buffer),
+                         "DHCPACK IP: %s NETMASK: %s GATEWAY: %s DNS: %s LEASE: %d",
+                         assigned_ip, NETMASK, GATEWAY, DNS_SERVER, LEASE_TIME);
+
+                int send_status = sendto(sock, send_buffer, strlen(send_buffer), 0, (struct sockaddr*)&relay_addr, addr_len);
+                if (send_status == -1) {
+                    perror("Error al enviar DHCPACK");
+                } else {
+                    printf("DHCPACK enviado con IP: %s al cliente %s\n", assigned_ip, client_id);
+                }
+            } else {
+                printf("Error: IP solicitada (%s) no coincide con la asignada (%s).\n", requested_ip, assigned_ip);
+                // Enviar DHCPNAK opcionalmente
+                snprintf(send_buffer, sizeof(send_buffer), "DHCPNAK");
+                sendto(sock, send_buffer, strlen(send_buffer), 0, (struct sockaddr*)&relay_addr, addr_len);
+            }
+        } else {
+            printf("Error: Cliente %s no encontrado para el DHCPREQUEST.\n", client_id);
+            // Enviar DHCPNAK opcionalmente
+            snprintf(send_buffer, sizeof(send_buffer), "DHCPNAK");
+            sendto(sock, send_buffer, strlen(send_buffer), 0, (struct sockaddr*)&relay_addr, addr_len);
+        }
+    }
+
+cleanup:
     // Liberar el hilo al finalizar
     pthread_mutex_lock(&thread_count_mutex);
     active_threads--;
@@ -263,11 +303,16 @@ int main() {
 
             // Preparar datos para el hilo
             client_data_t* client_data = malloc(sizeof(client_data_t));
-            client_data->sock = sock;
-            memcpy(client_data->buffer, buffer, bytes_received);
+            if (client_data == NULL) {
+                perror("Error al asignar memoria para client_data");
+                continue;
+            }
+            strncpy(client_data->buffer, buffer, bytes_received);
+            client_data->buffer[bytes_received] = '\0';
             client_data->bytes_received = bytes_received;
             client_data->client_addr = client_addr;
             client_data->addr_len = addr_len;
+            client_data->sock = sock;
 
             pthread_t thread_id;
 
@@ -287,6 +332,7 @@ int main() {
 
     close(sock);
     pthread_mutex_destroy(&thread_count_mutex);
+    pthread_mutex_destroy(&clients_mutex);
 
     return 0;
 }
