@@ -49,6 +49,9 @@ typedef struct {
     socklen_t addr_len;
 } client_data_t;
 
+// Declaración de la función mostrar_tabla_ips
+void mostrar_tabla_ips();
+
 // Inicializar el pool de IPs
 void initialize_ip_pool() {
     struct in_addr addr;
@@ -232,6 +235,9 @@ void* handle_client(void* arg) {
         }
     }
 
+    // Mostrar la tabla de IPs asignadas después de procesar cada solicitud
+    mostrar_tabla_ips();
+
 cleanup:
     // Liberar el hilo al finalizar
     pthread_mutex_lock(&thread_count_mutex);
@@ -335,4 +341,13 @@ int main() {
     pthread_mutex_destroy(&clients_mutex);
 
     return 0;
+}
+
+// Tabla de IPs Asignadas y Direcciones MAC
+void mostrar_tabla_ips() {
+    printf("\nIPs Asignadas\n");
+    printf("------------------\n");
+    for (int i = 0; i < client_count; i++) {
+        printf("%s\n", clients[i].assigned_ip);
+    }
 }

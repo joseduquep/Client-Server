@@ -3,11 +3,11 @@ from colorama import init, Fore
 init()
 
 # IP y puerto del servidor DHCP
-SERVER_IP = "192.168.1.12"  # Cambia esto si el servidor está en otra máquina
+SERVER_IP = "172.22.116.245"  # Cambia esto si el servidor está en otra máquina
 SERVER_PORT = 67
 CLIENT_PORT = 68
 
-CLIENT_ID = "Client1"  # Identificador único del cliente
+CLIENT_ID = "Client8"  # Identificador único del cliente
 
 # Función para crear el socket de cliente DHCP
 def create_dhcp_socket():
