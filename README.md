@@ -115,4 +115,11 @@ Este proyecto permitió comprender y aplicar el protocolo DHCP, así como utiliz
 El cliente en Python interactuó correctamente con el servidor, gestionando la solicitud, recepción y liberación de direcciones IP de manera fluida. Las pruebas confirmaron el correcto funcionamiento tanto en entornos locales como en la nube. Aunque se cumplieron los objetivos principales, queda espacio para mejorar en aspectos como la seguridad y la gestión de configuraciones de red más avanzadas.
 
 ## Referencias
+# Recursos importantes
+
+- [API de Berkeley Sockets](https://en.wikipedia.org/wiki/Berkeley_sockets)
+- [Documentación de Microsoft sobre el servidor DHCP](https://docs.microsoft.com/en-us/windows-server/networking/technologies/dhcp/dhcp-top)
+- [Fundamentos de DHCP](https://www.networkworld.com/article/3239896/what-is-dhcp-and-how-does-it-work.html)
+- [RFC 3046: Agente de Relay DHCP](https://datatracker.ietf.org/doc/html/rfc3046)
+- [Chat GPT](https://chat.openai.com)
 
