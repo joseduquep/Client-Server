@@ -52,8 +52,9 @@ Para manejar las solicitudes de múltiples clientes al mismo tiempo, el servidor
 ### Pruebas y Despliegue
 El servidor y el cliente fueron probados tanto en entornos locales como en la nube (usando AWS EC2). Se realizaron pruebas para verificar la asignación de IPs, la gestión del tiempo de arrendamiento y el manejo concurrente de múltiples clientes. El sistema funcionó correctamente bajo diferentes condiciones de red, y se verificó que el servidor pudiera manejar situaciones de errores y tiempos de espera.
 
-### Funcionamiento e implementación del código
-1. Instalación de WSL
+## Funcionamiento e implementación del código
+### Instalación de WSL
+1. Habilitar WSL
 - Abre el Símbolo del sistema o PowerShell como administrador y ejecuta el siguiente comando para habilitar WSL
 
 `wsl --install`
@@ -63,6 +64,30 @@ El servidor y el cliente fueron probados tanto en entornos locales como en la nu
 2. Reiniciar el Sistema
 Una vez que tu sistema se reinicie, abre la aplicación de Ubuntu. Se te pedirá que configures un nombre de usuario y una contraseña para tu entorno de Linux.
 
+### Librerías y Elementos a Instalar
+1. Instalar el Compilador de C
+-Abrir la terminal de WSL y ejecutar:
+
+`sudo apt-get update
+sudo apt-get install build-essential`
+
+2. Instalar Python
+- En la terminal de WSL, instalar Python y pip ejecutando
+
+`sudo apt-get install python3 python3-pip`
+
+### Pasos Generales para Ejecutar
+1. Compilar el Servidor
+
+`gcc servidor.c -o serverexe`
+
+2. Ejecutar el Servidor
+
+`sudo ./servidor`
+
+3. Ejecutar el Cliente
+
+`python3 cliente.py`
 
 ## Aspectos Logrados y No Logrados
 ### Aspectos Logrados
