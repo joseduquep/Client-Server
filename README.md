@@ -15,9 +15,9 @@ El proyecto incluye funcionalidades esenciales del protocolo DHCP, como el manej
   1. Inicialización del pool de IPs: El servidor gestiona un conjunto de direcciones IP configuradas a partir de la dirección inicial 192.168.1.100, generando hasta 100 direcciones únicas.
 
   2. Gestión de solicitudes DHCP:
-    - DHCPDISCOVER: El servidor escucha en el puerto 67 y, al recibir una solicitud DHCPDISCOVER, asigna una dirección IP disponible del pool y envía una oferta DHCPOFFER al cliente.
-    - DHCPREQUEST: Al recibir una solicitud DHCPREQUEST, el servidor verifica que la IP solicitada corresponda a la previamente ofrecida y, de ser así, envía una confirmación DHCPACK.
-    - Gestión de IPs concurrentes: Utilizando hilos, el servidor puede manejar múltiples clientes simultáneamente, lo que permite atender varias solicitudes al mismo tiempo.
+  - DHCPDISCOVER: El servidor escucha en el puerto 67 y, al recibir una solicitud DHCPDISCOVER, asigna una dirección IP disponible del pool y envía una oferta DHCPOFFER al cliente.
+  - DHCPREQUEST: Al recibir una solicitud DHCPREQUEST, el servidor verifica que la IP solicitada corresponda a la previamente ofrecida y, de ser así, envía una confirmación DHCPACK.
+  - Gestión de IPs concurrentes: Utilizando hilos, el servidor puede manejar múltiples clientes simultáneamente, lo que permite atender varias solicitudes al mismo tiempo.
   
   3. Asignación de direcciones IP: Las direcciones IP se asignan dinámicamente desde el pool, y cada cliente tiene una dirección asociada hasta que el tiempo de arrendamiento expira o se libera la IP.
 
