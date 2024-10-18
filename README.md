@@ -11,7 +11,7 @@ Este proyecto tiene como objetivo la creación de un servidor y un cliente DHCP 
 El proyecto incluye funcionalidades esenciales del protocolo DHCP, como el manejo de solicitudes DHCPDISCOVER, DHCPOFFER, DHCPREQUEST y DHCPACK, además de ofrecer soporte para múltiples clientes concurrentes a través del uso de hilos en el servidor.
 
 ## Desarrollo
-# Funcionalidades del Servidor
+### Funcionalidades del Servidor
   1. Inicialización del pool de IPs: El servidor gestiona un conjunto de direcciones IP configuradas a partir de la dirección inicial 192.168.1.100, generando hasta 100 direcciones únicas.
 
   2. Gestión de solicitudes DHCP:
@@ -25,7 +25,7 @@ El proyecto incluye funcionalidades esenciales del protocolo DHCP, como el manej
 
   5. Manejo de errores: El servidor es capaz de manejar solicitudes inválidas, devolviendo un mensaje DHCPNAK en caso de que una solicitud DHCPREQUEST no pueda ser procesada o la IP solicitada no esté disponible.
 
-# Funcionalidades del Cliente
+### Funcionalidades del Cliente
   1. Solicitud de dirección IP:
     - El cliente envía un mensaje DHCPDISCOVER al servidor especificando un CLIENT_ID único.
     - Después de recibir un DHCPOFFER, el cliente envía un DHCPREQUEST solicitando la IP ofrecida.
@@ -38,27 +38,27 @@ El proyecto incluye funcionalidades esenciales del protocolo DHCP, como el manej
 
   4. Cierre y liberación de recursos: Una vez que el cliente ha terminado de interactuar con el servidor, cierra el socket y finaliza la ejecución.
 
-# Diagrama del Flujo de Trabajo
+### Diagrama del Flujo de Trabajo
   1. El cliente envía un DHCPDISCOVER al servidor.
   2. El servidor responde con un DHCPOFFER ofreciendo una dirección IP.
   3. El cliente envía un DHCPREQUEST para solicitar la IP ofrecida.
   4. El servidor confirma la asignación enviando un DHCPACK o rechaza la solicitud con un DHCPNAK.
   5. El cliente maneja la IP asignada y gestiona su uso mientras sea válida.
 
-# Hilos en el Servidor
+### Hilos en el Servidor
 Para manejar las solicitudes de múltiples clientes al mismo tiempo, el servidor utiliza hilos. Cada vez que se recibe una solicitud, se crea un nuevo hilo para procesarla sin bloquear la ejecución del servidor. Se implementan mecanismos de protección con mutexes para garantizar que los datos compartidos, como la tabla de clientes y el pool de IPs, sean accedidos de manera segura.
 
-# Pruebas y Despliegue
+### Pruebas y Despliegue
 El servidor y el cliente fueron probados tanto en entornos locales como en la nube (usando AWS EC2). Se realizaron pruebas para verificar la asignación de IPs, la gestión del tiempo de arrendamiento y el manejo concurrente de múltiples clientes. El sistema funcionó correctamente bajo diferentes condiciones de red, y se verificó que el servidor pudiera manejar situaciones de errores y tiempos de espera.
 
 ## Aspectos Logrados y No Logrados
-# Aspectos Logrados
+### Aspectos Logrados
   - Implementación completa del servidor DHCP en C que gestiona solicitudes de múltiples clientes.
   - Correcta gestión de direcciones IP, tiempos de arrendamiento y liberación de IPs.
   - Cliente DHCP funcional en Python, capaz de solicitar y recibir direcciones IP.
   - Soporte para múltiples clientes concurrentes con manejo seguro de datos compartidos usando hilos y mutexes.
   - Manejo adecuado de errores como la recepción de solicitudes incorrectas o la falta de IPs disponibles.
-# Aspectos No Logrados
+### Aspectos No Logrados
   - No se implementaron mecanismos de seguridad como autenticación o cifrado en la comunicación.
   - No se incluyeron políticas para liberar automáticamente las IPs inactivas o extender el pool en caso de agotamiento.
   - A pesar de contar con el relay, no se probó el manejo de configuraciones de red más complejas como múltiples gateways.
