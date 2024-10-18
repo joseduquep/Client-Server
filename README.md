@@ -53,9 +53,16 @@ Para manejar las solicitudes de múltiples clientes al mismo tiempo, el servidor
 El servidor y el cliente fueron probados tanto en entornos locales como en la nube (usando AWS EC2). Se realizaron pruebas para verificar la asignación de IPs, la gestión del tiempo de arrendamiento y el manejo concurrente de múltiples clientes. El sistema funcionó correctamente bajo diferentes condiciones de red, y se verificó que el servidor pudiera manejar situaciones de errores y tiempos de espera.
 
 ### Funcionamiento e implementación del código
-Instalación de WSL
+1. Instalación de WSL
 - Abre el Símbolo del sistema o PowerShell como administrador y ejecuta el siguiente comando para habilitar WSL
+
 `wsl --install`
+
+- Esto instalará WSL y descargará Ubuntu.
+
+2. Reiniciar el Sistema
+Una vez que tu sistema se reinicie, abre la aplicación de Ubuntu. Se te pedirá que configures un nombre de usuario y una contraseña para tu entorno de Linux.
+
 
 ## Aspectos Logrados y No Logrados
 ### Aspectos Logrados
