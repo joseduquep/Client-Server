@@ -68,8 +68,8 @@ Una vez que tu sistema se reinicie, abre la aplicación de Ubuntu. Se te pedirá
 1. Instalar el Compilador de C
 -Abrir la terminal de WSL y ejecutar:
 
-`sudo apt-get update
-sudo apt-get install build-essential`
+`sudo apt-get update`
+`sudo apt-get install build-essential`
 
 2. Instalar Python
 - En la terminal de WSL, instalar Python y pip ejecutando
