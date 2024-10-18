@@ -89,6 +89,11 @@ Una vez que tu sistema se reinicie, abre la aplicación de Ubuntu. Se te pedirá
 
 `python3 cliente.py`
 
+## Diagrama
+
+![Servidor - Cliente Dhcp drawio](https://github.com/user-attachments/assets/9f49e5c1-0605-44bc-b6d6-87612bd05ab8)
+
+
 ## Aspectos Logrados y No Logrados
 ### Aspectos Logrados
   - Implementación completa del servidor DHCP en C que gestiona solicitudes de múltiples clientes.
