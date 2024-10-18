@@ -6,7 +6,7 @@
 #include <pthread.h>
 #include <time.h>
 
-#define SERVER_PORT 67
+#define SERVER_PORT 1067
 #define MAX_CLIENTS 100
 #define MAX_THREADS 50
 #define IP_POOL_START "192.168.1.100"
