@@ -125,3 +125,8 @@ El cliente en Python interactuó correctamente con el servidor, gestionando la s
 - [RFC 3046: Agente de Relay DHCP](https://datatracker.ietf.org/doc/html/rfc3046)
 - [Chat GPT](https://chat.openai.com)
 
+## Integrantes del equipo
+- [Jose Alejandro Duque](https://github.com/joseduquep)
+- [Jacobo Restrepo](https://github.com/pollorest)
+- [Nicolás Hurtado](https://github.com/NicoHurtado)
+- [Pedro Saldarriaga](https://github.com/saldaf10)
