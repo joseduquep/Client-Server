@@ -114,6 +114,9 @@ Este proyecto permitió comprender y aplicar el protocolo DHCP, así como utiliz
 
 El cliente en Python interactuó correctamente con el servidor, gestionando la solicitud, recepción y liberación de direcciones IP de manera fluida. Las pruebas confirmaron el correcto funcionamiento tanto en entornos locales como en la nube. Aunque se cumplieron los objetivos principales, queda espacio para mejorar en aspectos como la seguridad y la gestión de configuraciones de red más avanzadas.
 
+## Video
+[Video](https://drive.google.com/file/d/1gc12j5HIsMk7czCgSyGfW0EjSGrVg73Y/view?usp=sharing)
+
 ## Referencias
 
 - [API de Berkeley Sockets](https://en.wikipedia.org/wiki/Berkeley_sockets)
